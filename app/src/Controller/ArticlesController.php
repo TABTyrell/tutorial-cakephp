@@ -27,7 +27,10 @@ class ArticlesController extends AppController
 
     public function view($slug = null)
     {
-        $article = $this->Articles->findBySlug($slug)->firstOrFail();
+        $article = $this->Articles
+        ->findBySlug($slug)
+        ->contain('Tags')
+        ->firstOrFail();
         $this->set(compact('article'));
     }
 
@@ -47,6 +50,12 @@ class ArticlesController extends AppController
             }
             $this->Flash->error(__('Unable to add your article.'));
         }
+        // Get a list of tags.
+        $tags = $this->Articles->Tags->find('list')->all();
+
+        // Set tags to the view context
+        $this->set('tags', $tags);
+
         $this->set('article', $article);
     }
 
@@ -54,8 +63,8 @@ class ArticlesController extends AppController
     {
         $article = $this->Articles
             ->findBySlug($slug)
+            ->contain('Tags')
             ->firstOrFail();
-
         if ($this->request->is(['post', 'put'])) {
             $this->Articles->patchEntity($article, $this->request->getData());
             if ($this->Articles->save($article)) {
@@ -64,7 +73,13 @@ class ArticlesController extends AppController
             }
             $this->Flash->error(__('Unable to update your article.'));
         }
-
+    
+        // Get a list of tags.
+        $tags = $this->Articles->Tags->find('list')->all();
+    
+        // Set tags to the view context
+        $this->set('tags', $tags);
+    
         $this->set('article', $article);
     }
 
@@ -78,4 +93,40 @@ class ArticlesController extends AppController
             return $this->redirect(['action' => 'index']);
         }
     }
+
+    public function tags()
+    {
+        // The 'pass' key is provided by CakePHP and contains all
+        // the passed URL path segments in the request.
+        $tags = $this->request->getParam('pass');
+
+        // Use the ArticlesTable to find tagged articles.
+        $articles = $this->Articles->find('tagged', [
+                'tags' => $tags
+            ])
+            ->all();
+
+        // Pass variables into the view template context.
+        $this->set([
+            'articles' => $articles,
+            'tags' => $tags
+        ]);
+    }
+
+    /* getting from params
+    public function tags(...$tags)
+    {
+        // Use the ArticlesTable to find tagged articles.
+        $articles = $this->Articles->find('tagged', [
+                'tags' => $tags
+            ])
+            ->all();
+
+        // Pass variables into the view template context.
+        $this->set([
+            'articles' => $articles,
+            'tags' => $tags
+        ]);
+    }
+    */
 }
